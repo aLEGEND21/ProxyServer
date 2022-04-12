@@ -1,0 +1,6 @@
+# Folders
+__pycache__/
+flask_session/
+
+# Files
+.env
