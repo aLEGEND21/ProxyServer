@@ -7,8 +7,11 @@ from urllib.parse import urlparse
 from flask import request
 from flask import session
 
+from config import Config
+
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = Config.SECRET_KEY
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
@@ -135,7 +138,7 @@ def replace_all_links(html):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=Config.DEBUG, host=Config.SERVER)
 
 
 # TODO: Fix the issue on first found on Microsoft's store, where a 404 error is given when clicking
