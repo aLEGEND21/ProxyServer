@@ -40,8 +40,16 @@ def page_not_found(e):
     # Return the html
     return html"""
 
+    # Fix urls that don't have :// after http(s)
+    if url.startswith("http:/"):
+        if url[6] != "/":
+            url = url.replace("http:/", "http://")
+    elif url.startswith("https:/"):
+        if url[7] != "/":
+            url = url.replace("https:/", "https://")
+
     # Set the main page url to the current url if it is a complete url
-    if url.startswith("http://") or url.startswith("https://"):
+    if url.startswith("http:/") or url.startswith("https:/"): # Also allows https:/ and http:/ urls
         session["query_url"] = url
         # TODO: Make the domain http or https based on which one it is
         if urlparse(url).netloc.startswith("www."):
