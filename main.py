@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask
 from flask_session import Session
+from flask import render_template
 from urllib.parse import urljoin
 from urllib.parse import urlparse
 from flask import request
@@ -17,13 +18,19 @@ app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     url = request.url[len(request.host_url):]
-
+    
     # Set the url to google.com if there was no url provided
     if url == "":
         url = "https://google.com"
+        session["query_url"] = url
 
     """# Set the main page url to the current url if it is a complete url
     if url.startswith("http://") or url.startswith("https://"):
@@ -152,3 +159,5 @@ if __name__ == "__main__":
 # TODO: Fix the issue on first found on Microsoft's store, where a 404 error is given when clicking
 # on a specific product. This is likely because the domain is not saved correctly, which is why when
 # it is attached to the relative url, there is a 404 error.
+
+# TODO: Make a front page for the proxy
