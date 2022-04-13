@@ -31,6 +31,16 @@ def page_not_found(e):
     # Handle the server trying to access the favicon on the home page
     if session.get("query_url") is None and url == "favicon.ico":
         return Response(200)
+    
+    # Fix the URL if http(s):// is given in the url but there is no domain present. Add the 
+    # domain from the session dict to the url in order to fix it.
+    if url.startswith("http"):
+        url_split = url.split("/")
+        del url_split[1] # Is an empty space
+        if "." not in url_split[1]:
+            url = url_split[1:]
+            url = "/".join(url)
+            url = f"{session.get('domain')}/{url}"
 
     """# Set the main page url to the current url if it is a complete url
     if url.startswith("http://") or url.startswith("https://"):
@@ -80,7 +90,7 @@ def page_not_found(e):
     content = get_page_contents(query_url)
 
     # Try to decode the bytes object into a string. If there is an error, then just return the 
-    # bytes object to the user. Otherwise, clean the page contents and return it
+    # bytes object to the user. Otherwise, clean the page contents and return it.
     try: 
         content = bytes.decode(content)
     except UnicodeDecodeError:
@@ -170,3 +180,8 @@ if __name__ == "__main__":
 # TODO: Fix the issue on first found on Microsoft's store, where a 404 error is given when clicking
 # on a specific product. This is likely because the domain is not saved correctly, which is why when
 # it is attached to the relative url, there is a 404 error.
+# UPDATE: Appears to be fixed ^
+
+# TODO: Update the query url to handle redirects when displaying the contents of a webpage.
+# Ex: On chatapp.alegend.repl.co, the url that the POST request is sent to for login is not 
+# /login, but / instead.
