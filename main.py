@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask
+from flask import Response
 from flask_session import Session
 from flask import render_template
 from urllib.parse import urljoin
@@ -27,10 +28,9 @@ def home():
 def page_not_found(e):
     url = request.url[len(request.host_url):]
     
-    # Set the url to google.com if there was no url provided
-    if url == "":
-        url = "https://google.com"
-        session["query_url"] = url
+    # Handle the server trying to access the favicon on the home page
+    if session.get("query_url") is None and url == "favicon.ico":
+        return Response(200)
 
     """# Set the main page url to the current url if it is a complete url
     if url.startswith("http://") or url.startswith("https://"):
@@ -59,17 +59,22 @@ def page_not_found(e):
     if url.startswith("http:/") or url.startswith("https:/"): # Also allows https:/ and http:/ urls
         session["query_url"] = url
         # TODO: Make the domain http or https based on which one it is
-        if urlparse(url).netloc.startswith("www."):
-            session["domain"] = "https://" + urlparse(url).netloc + "/"
-        else:
-            session["domain"] = "https://www." + urlparse(url).netloc + "/"
-        print(session["domain"])
+        # Detect whether the domain should have www. before it. To do this, send a request to the url
+        # and block redirects. Then check the headers for the location. If the location is None, then
+        # construct the link yourself
+        resp = requests.get(url, allow_redirects=False)
+        session["domain"] = resp.headers.get("location")
+        if session.get("domain") is None:
+            if urlparse(url).netloc.startswith("www."):
+                session["domain"] = "https://" + urlparse(url).netloc + "/"
+            else:
+                session["domain"] = "https://www." + urlparse(url).netloc + "/"
         query_url = url
     # Otherwise, add the main page url to the incomplete url to get the query url
     else:
         query_url = urljoin(session.get("query_url") + "/", url)
-        print(query_url)
-        print(query_url == "https://www.microsoft.com/en-us/d/surface-pro-7-and-surface-pro-type-cover-bundle/8s6t3hp3ct18")
+        #print(query_url)
+        #print(query_url == "https://www.microsoft.com/en-us/d/surface-pro-7-and-surface-pro-type-cover-bundle/8s6t3hp3ct18")
     
     # Make the request and get the page contents
     content = get_page_contents(query_url)
@@ -97,12 +102,18 @@ def clean_page_contents(content):
     # Load the page contents into BeautifulSoup
     soup = BeautifulSoup(content, "html.parser")
     
+    # Replace all relative <script> tags with absolute ones
+    for script in soup.find_all("script"):
+        if script.get("src") is not None: # Check that it is linking to an external script
+            if not script["src"].startswith("http"):
+                script["src"] = session.get("domain") + "/" + script["src"]
+
     # Replace all relative <link> links with domain + relative link
     for link in soup.find_all("link"):
         # Replace all relative links to stylesheets with the domain + relative link
         if link.get("rel") == "stylesheet":
             if not link["href"].startswith("http"): # Check if it is not an absolute link
-                link["href"] = urljoin(session.get("domain"), link["href"])
+                link["href"] = session.get("domain") + "/" + link["href"]
         # Replace other links with domain + relative link
         elif link.get("href") is not None:
             if not link["href"].startswith("http"): # Check if it is not an absolute link
@@ -159,5 +170,3 @@ if __name__ == "__main__":
 # TODO: Fix the issue on first found on Microsoft's store, where a 404 error is given when clicking
 # on a specific product. This is likely because the domain is not saved correctly, which is why when
 # it is attached to the relative url, there is a 404 error.
-
-# TODO: Make a front page for the proxy
