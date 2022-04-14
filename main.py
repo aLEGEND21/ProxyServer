@@ -123,7 +123,7 @@ def get_page_contents(url):
     try:
         content = sess.get(url).content
     except requests.exceptions.ConnectionError:
-        content = "A Connection Error Occured. Please Try Again Later."
+        content = b"A Connection Error Occured. Please Try Again Later."
     return content
 
 
