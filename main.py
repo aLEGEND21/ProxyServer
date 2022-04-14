@@ -27,6 +27,10 @@ def home():
 @app.errorhandler(404)
 def page_not_found(e):
     url = request.url[len(request.host_url):]
+
+    # Handle the user inputting something other than a url into the search box on the home page
+    if session.get("domain") is None and "." not in url:
+        return "Invalid URL"
     
     # Handle the server trying to access the favicon on the home page
     if session.get("query_url") is None and url == "favicon.ico":
@@ -67,18 +71,29 @@ def page_not_found(e):
 
     # Set the main page url to the current url if it is a complete url
     if url.startswith("http:/") or url.startswith("https:/"): # Also allows https:/ and http:/ urls
-        session["query_url"] = url
+        # Convert url to https so that it is easier to work with
+        if url.startswith("http:/"):
+            url = f"https{url[4:]}"
         # TODO: Make the domain http or https based on which one it is
         # Detect whether the domain should have www. before it. To do this, send a request to the url
-        # and block redirects. Then check the headers for the location. If the location is None, then
-        # construct the link yourself
-        resp = requests.get(url, allow_redirects=False)
-        session["domain"] = resp.headers.get("location")
-        if session.get("domain") is None:
+        # and block redirects. Then check the headers for the location. If the headers contain a
+        # relative link, then set the domain equal to the original url. Then, construct the query url
+        # from the domain and the location given by the request headers.
+        try:
+            loc = requests.get(url, allow_redirects=False).headers.get("location")
+        except requests.exceptions.ConnectionError:
+            print(f"Error connecting to {url} with redirects blocked.")
+            loc = None
+        if loc is not None and loc.startswith("http"):
+            session["domain"] = loc
+        else:
+            session["domain"] = url
+        session["query_url"] = urljoin(session["domain"], loc)
+        '''if session.get("domain") is None:
             if urlparse(url).netloc.startswith("www."):
                 session["domain"] = "https://" + urlparse(url).netloc + "/"
             else:
-                session["domain"] = "https://www." + urlparse(url).netloc + "/"
+                session["domain"] = "https://www." + urlparse(url).netloc + "/"'''
         query_url = url
     # Otherwise, add the main page url to the incomplete url to get the query url
     else:
