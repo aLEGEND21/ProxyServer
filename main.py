@@ -120,7 +120,10 @@ def page_not_found(e):
 def get_page_contents(url):
     sess = requests.session()
     sess.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36"
-    content = sess.get(url).content
+    try:
+        content = sess.get(url).content
+    except requests.exceptions.ConnectionError:
+        content = "A Connection Error Occured. Please Try Again Later."
     return content
 
 
