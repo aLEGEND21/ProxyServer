@@ -40,7 +40,8 @@ def page_not_found(e):
     # domain from the session dict to the url in order to fix it.
     if url.startswith("http"):
         url_split = url.split("/")
-        del url_split[1] # Is an empty space
+        if url_split[1] == "":
+            del url_split[1] # Is an empty space
         if "." not in url_split[1]:
             url = url_split[1:]
             url = "/".join(url)
